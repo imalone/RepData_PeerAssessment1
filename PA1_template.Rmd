@@ -5,17 +5,53 @@ output:
     keep_md: true
 ---
 
+Adapted from [rdpeng's template](https://github.com/rdpeng/RepData_PeerAssessment1)
+
+```{r setoptions,echo=TRUE}
+  library(knitr)
+  opts_chunk$set(echo=TRUE)
+```
 
 ## Loading and preprocessing the data
-
+```{r}
+# The activity.zip in source control matches exactly the
+# repdata_data_activity.zip downloadable from Coursera.
+library(dplyr)
+unzip("activity.zip")
+activity <- read.csv("activity.csv",
+                     colClasses=c("numeric","Date","numeric"),
+                     na.strings = "NA")
+dailyActivity <- activity %>% group_by(date) %>%
+  summarise(steps=sum(steps, na.rm=TRUE))
+intervalActivity <- activity %>% group_by(interval) %>%
+  summarise(avgSteps=mean(steps,na.rm=TRUE))
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r}
+library(ggplot2)
+# Adapt example from ggplot2 documentation
+qplot(steps, data=dailyActivity, xlab="Daily steps",
+      binwidth=1000, geom="histogram", fill=..count..) +
+  scale_fill_gradient("Count", low = "blue", high = "red")
+meanDailyActivity <- mean(dailyActivity$steps, na.rm=TRUE)
+medianDailyActivity <- median(dailyActivity$steps, na.rm=TRUE)
 
+sprintf ("Mean steps per day: %.3f", meanDailyActivity)
+sprintf ("Median steps per day: %.0f", medianDailyActivity)
+```
 
 
 ## What is the average daily activity pattern?
+```{r}
+# It says 'type ="l"', so I suppose that's base plotting:
+plot(avgSteps ~ interval, data=intervalActivity, type="l")
+topInterval <- intervalActivity[
+  which.max(intervalActivity$avgSteps),"interval"]
+sprintf("Most steps in %f interval", topInterval)
 
+```
 
 
 ## Imputing missing values

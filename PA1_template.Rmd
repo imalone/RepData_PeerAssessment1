@@ -31,10 +31,34 @@ intervalActivity <- activity %>% group_by(interval) %>%
 ## What is mean total number of steps taken per day?
 ```{r}
 library(ggplot2)
+# Determine optimum breaks for data. If nbins not supplied
+# then use one of the nclass. functions.
+findBreaks <- function (x, nclass.meth=nclass.Sturges,
+                           nbins) {
+  if (missing(nbins)) {
+    nbins <- nclass.meth(x)
+  }
+  breaks <- seq(from=min(x), to=max(x),
+      along.with = 0:nbins)
+}
+
+doHisto <- function (activity, breaks) {
+  qplot(steps, data=dailyActivity, xlab="Daily steps",
+        breaks=breaks,
+        geom="histogram", fill=..count..) +
+    scale_fill_gradient("Count", low = "blue", high = "red")
+}
+
+which (dailyActivity$steps == 0)
+
+breaks <- findBreaks(dailyActivity$steps)
+doHisto(dailyActivity, breaks)
+
+# Though I sort of like 10...
+breaks <- findBreaks(dailyActivity$steps,nbins=10)
+doHisto(dailyActivity, breaks)
+
 # Adapt example from ggplot2 documentation
-qplot(steps, data=dailyActivity, xlab="Daily steps",
-      binwidth=1000, geom="histogram", fill=..count..) +
-  scale_fill_gradient("Count", low = "blue", high = "red")
 meanDailyActivity <- mean(dailyActivity$steps, na.rm=TRUE)
 medianDailyActivity <- median(dailyActivity$steps, na.rm=TRUE)
 
@@ -55,7 +79,79 @@ sprintf("Most steps in %f interval", topInterval)
 
 
 ## Imputing missing values
+```{r}
+# "the total number of rows with NAs" (which does turn out to be
+# the same as number of is.na(activity$steps), i.e. no rows with
+# steps and missing date/interval)
+incomplete <- (!complete.cases(activity))
+sum(incomplete)
 
+# So what to do? Could do mean/median for each interval or day, or
+# whole period. Could even set them all to pi.
+# Instead: for each interval * day of the week, sample with
+# replacement from the existing cases for that combination.
+# While it's not the best solution for a single result, this
+# is something that could be repeated and bootstrapped to
+# estimate the uncertainty from our imputation.
+
+# Bit neater than full names from weekdays()
+activity$day <- strftime(dailyActivity$date,format="%a")
+
+activityComplete <- activity %>% filter(!is.na(steps))
+
+set.seed(1)
+fillValue <- function(steps, xday, xinterval) {
+  if (is.na(steps)) {
+    sample(
+      (activityComplete %>%
+        filter(day== xday & interval == xinterval))$steps,
+      size=1
+    )
+  } else {
+    steps
+  }
+}
+
+# New variable, keep original data clean
+activityImp <- activity %>% rowwise() %>%
+  mutate(steps = fillValue(steps,day,interval)) %>%
+  ungroup()
+
+# Confirm this works, fill values different
+merge (activity, activityImp, by=c("date","day","interval"),
+       suffixes=c(".original", ".imputed") ) %>%
+  filter(day=="Sun" & interval == 1800)
+
+dailyActivityImp <- activityImp %>% group_by(date) %>%
+  summarise(steps=sum(steps, na.rm=FALSE))
+
+meanDailyActivityImp <- mean(dailyActivityImp$steps, na.rm=FALSE)
+medianDailyActivityImp <- median(dailyActivityImp$steps, na.rm=FALSE)
+sprintf ("Mean daily activity with imputation %.3f", meanDailyActivityImp)
+sprintf ("Median daily activity with imputation %d", medianDailyActivityImp)
+
+breaks <- findBreaks(dailyActivityImp$steps,nbins=10)
+doHisto(dailyActivityImp, breaks)
+```
+
+The values are higher, in the earlier part of the assignment daily activity was formed by summing values over the day and ignoring na values. Filling them with something greater than 0 will increase the daily activity values and tend to increase the summary values. (Median however is only affected if any values increase past the previous current, it is not affected by changes in the ends of the range.)
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+activityImp$weekday = factor(
+  x = sapply(activityImp$day,
+             function(x) {
+               ifelse(x %in% c("Sat","Sun"),
+                      "weekend","weekday")
+             } )
+)
+
+ggplot(data=activityImp) +
+  stat_summary(aes(interval,steps),fun.data=mean_cl_boot, geom="smooth") +
+  facet_wrap(~weekday, ncol=1, as.table=TRUE) +
+  scale_y_continuous(name="Number of steps")
+```
+
+What would be nice would be to calculate the per-interval difference between the two and test that statistically (with appropriate multiple comparisons correction). However, not what's asked for. Looks like weekend activity is a little higher. If you accidentally plot points (as I originally did) weekend maximum activity is higher. Those confidence intervals are quite broad though (let's not think too hard about bootstrap confidence intervals on values we've already resampled, it's better than constant value filling though, which would decrease the estimated variance).

@@ -155,7 +155,7 @@ We impute missing values in the data by randomly sampling with replacement value
 # estimate the uncertainty from our imputation.
 
 # Bit neater than full names from weekdays()
-activity$day <- strftime(dailyActivity$date,format="%a")
+activity$day <- strftime(activity$date,format="%a")
 
 activityComplete <- activity %>% filter(!is.na(steps))
 

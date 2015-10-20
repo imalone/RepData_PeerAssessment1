@@ -18,6 +18,22 @@ knit2html("PA1_template.Rmd","PA1_template.html")
   # Some knitr housekeeping and libraries
   library(knitr)
   library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
   library(ggplot2)
   library(scales)
   opts_chunk$set(echo=TRUE)
@@ -194,7 +210,7 @@ We impute missing values in the data by randomly sampling with replacement value
 # estimate the uncertainty from our imputation.
 
 # Bit neater than full names from weekdays()
-activity$day <- strftime(dailyActivity$date,format="%a")
+activity$day <- strftime(activity$date,format="%a")
 
 activityComplete <- activity %>% filter(!is.na(steps))
 
@@ -232,14 +248,14 @@ merge (activity, activityImp, by=c("date","day","intervaltime",
 
 ```
 ##         date day interval steps.original steps.imputed
-## 1 2012-11-01 Sun     1800             NA            74
-## 2 2012-11-05 Sun     1800              0             0
-## 3 2012-11-09 Sun     1800             NA             0
-## 4 2012-11-13 Sun     1800              0             0
-## 5 2012-11-17 Sun     1800             89            89
-## 6 2012-11-21 Sun     1800              0             0
-## 7 2012-11-25 Sun     1800             65            65
-## 8 2012-11-29 Sun     1800             74            74
+## 1 2012-10-07 Sun     1800             90            90
+## 2 2012-10-14 Sun     1800              0             0
+## 3 2012-10-21 Sun     1800              0             0
+## 4 2012-10-28 Sun     1800             69            69
+## 5 2012-11-04 Sun     1800             NA             0
+## 6 2012-11-11 Sun     1800             30            30
+## 7 2012-11-18 Sun     1800             42            42
+## 8 2012-11-25 Sun     1800             65            65
 ```
 
 Resulting imputed step frequencies.
@@ -261,7 +277,7 @@ round(mean(dailyActivityImp$steps, na.rm=FALSE),3)
 ```
 
 ```
-## [1] 10864.18
+## [1] 10838.56
 ```
 
 * Median of total daily steps after imputation:
